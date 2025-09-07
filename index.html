@@ -20,11 +20,13 @@
     header h1, header h2, header h3 {
       margin: 5px 0;
     }
-    /* Profile icon */
+
+    /* Profile icon centered vertically */
     #profileMenu {
       position: absolute;
-      top: 20px;
+      top: 50%;
       right: 20px;
+      transform: translateY(-50%);
     }
     #profileIcon {
       width: 35px;
@@ -320,6 +322,7 @@
       minSelect.innerHTML = ministries.map(m => `<option>${m}</option>`).join("");
     }
 
+    // --- Updated loadSummary() with TOTAL skip ---
     async function loadSummary() {
       const fromYear = document.getElementById("fromYear").value;
       const toYear = document.getElementById("toYear").value;
@@ -352,6 +355,7 @@
       `;
 
       data.forEach(r => {
+        if ((r[0] || "").toUpperCase().includes("TOTAL") || (r[1] || "").toUpperCase().includes("TOTAL")) return;
         table.innerHTML += `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`;
         totals.total += parseInt(r[3]||0);
         totals.pac += parseInt(r[4]||0);
@@ -371,45 +375,7 @@
       `;
     }
 
-    async function loadDACSettled() {
-      const fromYear = document.getElementById("fromYear").value;
-      const toYear = document.getElementById("toYear").value;
-      const ministry = document.getElementById("ministry").value;
-      if (!fromYear || !toYear || !ministry) return;
-
-      const data = await fetchData("dacSettled", {fromYear, toYear, ministry});
-      const table = document.getElementById("summary");
-      currentView = "dac";
-
-      if (!data.length) {
-        table.innerHTML = "<tr><td colspan='6'>No DAC Settled Paras Found</td></tr>";
-        return;
-      }
-
-      document.getElementById("printHeading").innerText = "Summary of Paras Settled in DAC";
-
-      let totalDAC = 0;
-      table.innerHTML = `
-        <tr>
-          <th>Year</th>
-          <th>Ministry</th>
-          <th>Entity</th>
-          <th>Date of DAC</th>
-          <th>Paras Settled in DAC</th>
-          <th>Settled Para Nos</th>
-        </tr>
-        ${data.map(r => {
-          totalDAC += parseInt(r[4] || 0, 10);
-          return `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`;
-        }).join("")}
-        <tr style="font-weight:bold;background:#f2f2f2;">
-          <td colspan="4" style="text-align:right">Total</td>
-          <td>${totalDAC}</td>
-          <td></td>
-        </tr>
-      `;
-    }
-
+    // --- Updated loadPendingSplit() with TOTAL skip ---
     async function loadPendingSplit() {
       const fromYear = document.getElementById("fromYear").value;
       const toYear = document.getElementById("toYear").value;
@@ -445,6 +411,8 @@
       `;
 
       data.forEach(r => {
+        if ((r[0] || "").toUpperCase().includes("TOTAL") || (r[1] || "").toUpperCase().includes("TOTAL")) return;
+
         const year = r[0], min = r[1], dept = r[2];
         const total = parseInt(r[3]||0), pac = parseInt(r[4]||0), dac = parseInt(r[5]||0);
         let pendingNos = (r[7]||"").split(",").map(p=>p.trim()).filter(p=>p);
@@ -491,6 +459,45 @@
       `;
     }
 
+    async function loadDACSettled() {
+      const fromYear = document.getElementById("fromYear").value;
+      const toYear = document.getElementById("toYear").value;
+      const ministry = document.getElementById("ministry").value;
+      if (!fromYear || !toYear || !ministry) return;
+
+      const data = await fetchData("dacSettled", {fromYear, toYear, ministry});
+      const table = document.getElementById("summary");
+      currentView = "dac";
+
+      if (!data.length) {
+        table.innerHTML = "<tr><td colspan='6'>No DAC Settled Paras Found</td></tr>";
+        return;
+      }
+
+      document.getElementById("printHeading").innerText = "Summary of Paras Settled in DAC";
+
+      let totalDAC = 0;
+      table.innerHTML = `
+        <tr>
+          <th>Year</th>
+          <th>Ministry</th>
+          <th>Entity</th>
+          <th>Date of DAC</th>
+          <th>Paras Settled in DAC</th>
+          <th>Settled Para Nos</th>
+        </tr>
+        ${data.map(r => {
+          totalDAC += parseInt(r[4] || 0, 10);
+          return `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`;
+        }).join("")}
+        <tr style="font-weight:bold;background:#f2f2f2;">
+          <td colspan="4" style="text-align:right">Total</td>
+          <td>${totalDAC}</td>
+          <td></td>
+        </tr>
+      `;
+    }
+
     function printTable() { window.print(); }
 
     function downloadExcel() {
@@ -522,3 +529,4 @@
   </script>
 </body>
 </html>
+
