@@ -266,30 +266,41 @@
       const years = getSelectedValues('year-checkbox');
       const dd = document.getElementById("ministryDropdown");
       
-      // Reset List
-      const base = dd.innerHTML.split('<hr')[0] + '<hr style="margin:5px 0;border-top:1px solid #eee;">'; 
-      dd.innerHTML = base;
+      // Base variable (Select All aur HR line ko safe rakhne k liye)
+      // Note: Hum abhi clear nahi karenge, data aane ka wait karenge
+      const baseHTML = dd.innerHTML.split('<hr')[0] + '<hr style="margin:5px 0;border-top:1px solid #eee;">'; 
       
-      if(!years) return;
+      if(!years) {
+        // Agar koi year select nahi, to list empty kar do
+        dd.innerHTML = baseHTML;
+        document.getElementById("selectedMinistriesText").innerText = "None";
+        return;
+      }
       
+      // 1. Data Mangwayen (Wait karein)
       const data = await fetchData("getMinistries", {years:years});
       
-      if (data.length === 0) {
-         document.getElementById("selectedMinistriesText").innerText = "None";
-         return;
+      // 2. DATA AANE KE BAD -> Ab List Clear Karein
+      // Ye step duplicates ko rokega. Purana jo bhi tha, sab saaf.
+      dd.innerHTML = baseHTML;
+      
+      if(data.length === 0) {
+        document.getElementById("selectedMinistriesText").innerText = "None";
+        return;
       }
 
+      // 3. Naye Data ko Loop karke add karein
       data.forEach(m => {
         const l = document.createElement('label');
         l.innerHTML = `<input type="checkbox" class="ministry-checkbox" value="${m}" onchange="updateSelectedText('ministryDropdown', 'selectedMinistriesText', 'ministry-checkbox')"> ${m}`;
         dd.appendChild(l);
       });
 
-      // --- NEW: Auto Select All Ministries ---
+      // 4. Auto Select All Ministries
       const selectAllBox = document.getElementById('selectAllMinistries');
       if(selectAllBox) {
-          selectAllBox.checked = true; // Box ko tick karo
-          toggleSelectAll('ministryDropdown', 'ministry-checkbox'); // Saari ministries select karo
+          selectAllBox.checked = true;
+          toggleSelectAll('ministryDropdown', 'ministry-checkbox');
       }
     }
 
