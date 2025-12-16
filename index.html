@@ -147,11 +147,12 @@
     </div>
 
     <div id="buttonRow">
-      <button onclick="loadSummary()">Generate Summary</button>
-      <button onclick="loadDACSettled()">Settled in DAC</button>
+      <button onclick="loadSummary()">Summary</button>
+      <button onclick="loadDACSettled()">DAC Settled</button>
       <button onclick="loadPendingSplit()">Workload (Detailed)</button>
       <button onclick="loadPACMIWorkload()">Workload (M&I)</button>
       <button onclick="loadPACProgress()">Status for PAC</button>
+      <button onclick="loadComplianceReport()">Compliance Report</button>
       <button onclick="printTable()">Print</button>
       <button onclick="downloadExcel()">Excel</button>
       <button onclick="downloadPDF()">PDF</button>
@@ -400,6 +401,84 @@
            return; 
        }
 
+      // --- NEW: Compliance Report Function ---
+    async function loadComplianceReport() {
+      const yrs = getSelectedValues('year-checkbox');
+      const mins = getSelectedValues('ministry-checkbox');
+      
+      if(!yrs || !mins) { 
+        alert("Please select Year and Ministry"); 
+        return; 
+      }
+
+      // API Call
+      const data = await fetchData("generateComplianceReport", {years:yrs, ministries:mins});
+      
+      currentView = "compliance";
+      document.getElementById("printHeading").innerText = "Compliance Report (PAC Directives)";
+      
+      // Table Headers based on your requirements
+      let html = `
+        <tr>
+            <th>Audit Year</th>
+            <th>Ministry</th>
+            <th>Department</th>
+            <th>Total Paras (Discussed)</th>
+            <th>Full Compliance</th>
+            <th>Partial Compliance</th>
+            <th>Pending for Compliance</th>
+            <th>Pending Paras No.</th>
+            <th>% of Compliance</th>
+        </tr>`;
+
+      let t = {tot:0, full:0, part:0, pend:0};
+
+      if(data.length === 0) {
+         document.getElementById("summary").innerHTML = "<tr><td colspan='9'>No Discussed Paras Found</td></tr>";
+         return;
+      }
+
+      data.forEach(r => {
+        // r structure: 
+        // 0=Year, 1=Ministry, 2=Entity, 3=Total, 4=Full, 5=Partial, 6=Pending, 7=PendingNos, 8=Percentage
+        
+        html += `
+            <tr>
+                <td>${r[0]}</td>
+                <td>${r[1]}</td>
+                <td>${r[2]}</td>
+                <td>${r[3]}</td>
+                <td>${r[4]}</td>
+                <td>${r[5]}</td>
+                <td>${r[6]}</td>
+                <td style="font-size:12px;">${r[7]}</td>
+                <td><b>${r[8]}%</b></td>
+            </tr>`;
+            
+        // Totals Count
+        t.tot += parseInt(r[3]||0);
+        t.full += parseInt(r[4]||0);
+        t.part += parseInt(r[5]||0);
+        t.pend += parseInt(r[6]||0);
+      });
+
+      // Calculate Total Percentage
+      let totalPerc = t.tot > 0 ? ((t.full / t.tot) * 100).toFixed(2) : "0.00";
+
+      // Total Row
+      html += `
+        <tr style="font-weight:bold;background:#eee;">
+            <td colspan="3" align="right">Total</td>
+            <td>${t.tot}</td>
+            <td>${t.full}</td>
+            <td>${t.part}</td>
+            <td>${t.pend}</td>
+            <td></td>
+            <td>${totalPerc}%</td>
+        </tr>`;
+
+      document.getElementById("summary").innerHTML = html;
+    }
        const data = await fetchData("generatePACMIWorkload", {years:yrs, ministries:mins});
        
        currentView = "pac_mi";
