@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Workload Management System</title>
   <style>
-    /* --- CSS Styles (Same as before) --- */
+    /* --- CSS Styles --- */
     body { font-family: Arial, sans-serif; margin: 0; text-align: center; background: #f9f9f9; }
     header { background-color: #002147; color: white; padding: 20px; border-bottom: 4px solid #001530; position: relative; }
     header h1, header h2, header h3 { margin: 5px 0; }
@@ -36,57 +36,14 @@
     .dropdown-content label:hover { background-color: #ddd; }
     
     @media print {
-      body * {
-        visibility: hidden;
-      }
-      
-      /* Print Area Visible */
-      #printArea, #printArea * {
-        visibility: visible;
-        color: #000 !important; /* Force Pure Black Text */
-      }
-
-      #printArea {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-      }
-
-      /* Heading ko Dark aur Bold karna */
-      #printHeading {
-        font-size: 22px !important;
-        font-weight: 900 !important; /* Extra Bold */
-        text-decoration: underline;
-        margin-bottom: 20px;
-        text-align: center;
-        color: #000 !important;
-      }
-
-      /* Table Borders ko Dark Black karna */
-      #summary {
-        border-collapse: collapse !important;
-        width: 100%;
-        border: 2px solid #000 !important; /* Outer Border Thick Black */
-      }
-
-      #summary th, #summary td {
-        border: 1px solid #000 !important; /* Inner Borders Black */
-        padding: 8px;
-      }
-
-      /* Table Headers ko High Contrast banana */
-      #summary th {
-        background-color: transparent !important; /* Background color hata dein taake ink bache */
-        color: #000 !important;
-        font-weight: bold !important;
-        border-bottom: 2px solid #000 !important; /* Header k neeche moti line */
-      }
-
-      /* Footer aur Menu Chupana */
-      footer.no-print, #profileMenu, #buttonRow, header {
-        display: none !important;
-      }
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; color: #000 !important; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+      #printHeading { font-size: 22px !important; font-weight: 900 !important; text-decoration: underline; margin-bottom: 20px; text-align: center; color: #000 !important; }
+      #summary { border-collapse: collapse !important; width: 100%; border: 2px solid #000 !important; }
+      #summary th, #summary td { border: 1px solid #000 !important; padding: 8px; }
+      #summary th { background-color: transparent !important; color: #000 !important; font-weight: bold !important; border-bottom: 2px solid #000 !important; }
+      footer.no-print, #profileMenu, #buttonRow, header { display: none !important; }
     }
   </style>
 </head>
@@ -148,11 +105,12 @@
 
     <div id="buttonRow">
       <button onclick="loadSummary()">Summary</button>
-      <button onclick="loadDACSettled()">DAC Settled</button>
+      <button onclick="loadDACSettled()">Settled in DAC</button>
       <button onclick="loadPendingSplit()">Workload (Detailed)</button>
       <button onclick="loadPACMIWorkload()">Workload (M&I)</button>
       <button onclick="loadPACProgress()">Status for PAC</button>
-      <button onclick="loadComplianceReport()">Compliance Report</button>
+      <button onclick="loadComplianceReport()">Compliance Report</button> 
+      
       <button onclick="printTable()">Print</button>
       <button onclick="downloadExcel()">Excel</button>
       <button onclick="downloadPDF()">PDF</button>
@@ -172,7 +130,7 @@
 
   <script>
     // --- IMPORTANT: REPLACE THIS URL AFTER DEPLOYMENT ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbz1VdJfQVGmgQp8rHPVxAgSMK-co5_99yuD1COsc13f1DwlUrJDkcdaI3Upq6WQXJXx/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzx4SQDBgmqkYbe_0MrOa_TukoWjV1uSbqLJ9S_UCTAZgCgpqG2yZS6qWBguOhxp_yi/exec"; 
     // ----------------------------------------------------
 
     let allYears = [];
@@ -208,21 +166,11 @@
     function updateSelectedText(ddId, txtId, cls) {
       const cbs = document.getElementById(ddId).querySelectorAll('.'+cls);
       const sel = Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
-      
       let text = "None";
-      
-      if (sel.length === 0) {
-        text = "None Selected";
-      } else if (sel.length === cbs.length && cbs.length > 0) {
-        // Yahan change kiya hai: "All Selected (Count)"
-        text = "All Selected (" + sel.length + ")"; 
-      } else {
-        text = sel.length + " Selected";
-      }
-      
+      if (sel.length === 0) text = "None Selected";
+      else if (sel.length === cbs.length && cbs.length > 0) text = "All Selected (" + sel.length + ")"; 
+      else text = sel.length + " Selected";
       document.getElementById(txtId).innerText = text;
-      
-      // Agar Year change hua to Ministry reload karo
       if(cls==='year-checkbox') loadMinistries();
     }
     function getSelectedValues(cls) {
@@ -243,87 +191,46 @@
     async function loadYears() {
       const data = await fetchData("getYears");
       const dd = document.getElementById("yearDropdown");
-      
-      // Purane options clear karna (siwaye Select All ke)
       const base = dd.innerHTML.split('<hr')[0] + '<hr style="margin:5px 0;border-top:1px solid #eee;">'; 
       dd.innerHTML = base;
-
       data.forEach(y => {
         const l = document.createElement('label');
         l.innerHTML = `<input type="checkbox" class="year-checkbox" value="${y}" onchange="updateSelectedText('yearDropdown', 'selectedYearsText', 'year-checkbox')"> ${y}`;
         dd.appendChild(l);
       });
-
-      // --- NEW: Auto Select All Years ---
       const selectAllBox = document.getElementById('selectAllYears');
-      if(selectAllBox) {
-          selectAllBox.checked = true; // Box ko tick karo
-          toggleSelectAll('yearDropdown', 'year-checkbox'); // Saaray years select karo
-          // Note: toggleSelectAll khud hi 'loadMinistries' ko call kar lega
-      }
+      if(selectAllBox) { selectAllBox.checked = true; toggleSelectAll('yearDropdown', 'year-checkbox'); }
     }
 
     async function loadMinistries() {
       const years = getSelectedValues('year-checkbox');
       const dd = document.getElementById("ministryDropdown");
-      
-      // Base variable (Select All aur HR line ko safe rakhne k liye)
-      // Note: Hum abhi clear nahi karenge, data aane ka wait karenge
       const baseHTML = dd.innerHTML.split('<hr')[0] + '<hr style="margin:5px 0;border-top:1px solid #eee;">'; 
-      
-      if(!years) {
-        // Agar koi year select nahi, to list empty kar do
-        dd.innerHTML = baseHTML;
-        document.getElementById("selectedMinistriesText").innerText = "None";
-        return;
-      }
-      
-      // 1. Data Mangwayen (Wait karein)
+      if(!years) { dd.innerHTML = baseHTML; document.getElementById("selectedMinistriesText").innerText = "None"; return; }
       const data = await fetchData("getMinistries", {years:years});
-      
-      // 2. DATA AANE KE BAD -> Ab List Clear Karein
-      // Ye step duplicates ko rokega. Purana jo bhi tha, sab saaf.
       dd.innerHTML = baseHTML;
-      
-      if(data.length === 0) {
-        document.getElementById("selectedMinistriesText").innerText = "None";
-        return;
-      }
-
-      // 3. Naye Data ko Loop karke add karein
+      if(data.length === 0) { document.getElementById("selectedMinistriesText").innerText = "None"; return; }
       data.forEach(m => {
         const l = document.createElement('label');
         l.innerHTML = `<input type="checkbox" class="ministry-checkbox" value="${m}" onchange="updateSelectedText('ministryDropdown', 'selectedMinistriesText', 'ministry-checkbox')"> ${m}`;
         dd.appendChild(l);
       });
-
-      // 4. Auto Select All Ministries
       const selectAllBox = document.getElementById('selectAllMinistries');
-      if(selectAllBox) {
-          selectAllBox.checked = true;
-          toggleSelectAll('ministryDropdown', 'ministry-checkbox');
-      }
+      if(selectAllBox) { selectAllBox.checked = true; toggleSelectAll('ministryDropdown', 'ministry-checkbox'); }
     }
 
     // --- REPORTS ---
-
-    // 1. General Summary (Combines Pending Splits into Single Columns)
     async function loadSummary() {
       const yrs = getSelectedValues('year-checkbox'), mins = getSelectedValues('ministry-checkbox');
       if(!yrs || !mins) return alert("Select Year & Ministry");
-      
       const data = await fetchData("generateSummary", {years:yrs, ministries:mins});
       currentView = "summary";
       document.getElementById("printHeading").innerText = "Workload Summary";
-      
       let html = `<tr><th>Year</th><th>Ministry</th><th>Department</th><th>Total Paras</th><th>PAC Settled</th><th>DAC Settled</th><th>Pending</th><th>Pending Para Nos</th></tr>`;
       let t = {tot:0, pac:0, dac:0, pen:0};
-
       data.forEach(r => {
-        // r indices: 3=Total, 4=PAC, 5=DAC, 6=AuditCt, 7=AuditNos, 8=CommCt, 9=CommNos
         const pendCount = parseInt(r[6]||0) + parseInt(r[8]||0);
-        const pendNos = [r[7], r[9]].filter(x=>x).join(", "); // Combine both arrays
-
+        const pendNos = [r[7], r[9]].filter(x=>x).join(", ");
         html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${pendCount}</td><td>${pendNos}</td></tr>`;
         t.tot+=parseInt(r[3]); t.pac+=parseInt(r[4]); t.dac+=parseInt(r[5]); t.pen+=pendCount;
       });
@@ -331,18 +238,14 @@
       document.getElementById("summary").innerHTML = html;
     }
 
-    // 2. Workload Detailed (Uses Split Data Directly)
     async function loadPendingSplit() {
       const yrs = getSelectedValues('year-checkbox'), mins = getSelectedValues('ministry-checkbox');
       if(!yrs || !mins) return alert("Select Year & Ministry");
-
       const data = await fetchData("generateSummary", {years:yrs, ministries:mins});
       currentView = "detailed";
-      document.getElementById("printHeading").innerText = "Workload Detailed (Audit vs Comments)";
-
+      document.getElementById("printHeading").innerText = "Workload Detailed";
       let html = `<tr><th>Year</th><th>Ministry</th><th>Entity</th><th>Total</th><th>PAC Settled</th><th>DAC Settled</th><th>Audit Paras</th><th>Audit Para Nos</th><th>Comments</th><th>Comment Nos</th></tr>`;
       let t = {tot:0, pac:0, dac:0, aud:0, com:0};
-
       data.forEach(r => {
         html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td><td>${r[8]}</td><td>${r[9]}</td></tr>`;
         t.tot+=parseInt(r[3]); t.pac+=parseInt(r[4]); t.dac+=parseInt(r[5]); t.aud+=parseInt(r[6]); t.com+=parseInt(r[8]);
@@ -351,20 +254,15 @@
       document.getElementById("summary").innerHTML = html;
     }
 
-    // 3. DAC Settled (Exclusive & Date wise)
     async function loadDACSettled() {
       const yrs = getSelectedValues('year-checkbox'), mins = getSelectedValues('ministry-checkbox');
       if(!yrs || !mins) return alert("Select Year & Ministry");
-
       const data = await fetchData("dacSettled", {years:yrs, ministries:mins});
       currentView = "dac";
-      document.getElementById("printHeading").innerText = "Paras Settled in DAC (Exclusive of PAC)";
-
+      document.getElementById("printHeading").innerText = "Paras Settled in DAC";
       if(!data.length) { document.getElementById("summary").innerHTML = "<tr><td>No Data Found</td></tr>"; return; }
-
       let html = `<tr><th>Year</th><th>Ministry</th><th>Entity</th><th>Date of DAC</th><th>Paras Settled</th><th>Settled Para Nos</th></tr>`;
       let tot = 0;
-
       data.forEach(r => {
         html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`;
         tot += parseInt(r[4]);
@@ -373,14 +271,12 @@
       document.getElementById("summary").innerHTML = html;
     }
 
-    // 4. Status for PAC
     async function loadPACProgress() {
       const yrs = getSelectedValues('year-checkbox'), mins = getSelectedValues('ministry-checkbox');
       if(!yrs || !mins) return alert("Select Year & Ministry");
       const data = await fetchData("generatePACProgress", {years:yrs, ministries:mins});
       currentView = "pac_status";
       document.getElementById("printHeading").innerText = "PAC Status Report";
-      
       let html = `<tr><th>Year</th><th>Ministry</th><th>Entity</th><th>Total Paras</th><th>Discussed</th><th>PAC Settled</th><th>DAC Rec.</th><th>Court/FIA</th><th>Pending Disc.</th></tr>`;
       let t = Array(6).fill(0);
       data.forEach(r => {
@@ -390,40 +286,39 @@
       html += `<tr style="font-weight:bold;background:#eee;"><td colspan="3" align="right">Total</td><td>${t[0]}</td><td>${t[1]}</td><td>${t[2]}</td><td>${t[3]}</td><td>${t[4]}</td><td>${t[5]}</td></tr>`;
       document.getElementById("summary").innerHTML = html;
     }
-    
-   // 5. Workload M&I (UPDATED Frontend)
+
     async function loadPACMIWorkload() {
        const yrs = getSelectedValues('year-checkbox');
        const mins = getSelectedValues('ministry-checkbox');
-       
-       if(!yrs || !mins) { 
-           alert("Please select Year and Ministry"); 
-           return; 
-       }
+       if(!yrs || !mins) { alert("Please select Year and Ministry"); return; }
+       const data = await fetchData("generatePACMIWorkload", {years:yrs, ministries:mins});
+       currentView = "pac_mi";
+       document.getElementById("printHeading").innerText = "Workload (Monitoring & Implementation)";
+       let html = `<tr><th>Year</th><th>Ministry</th><th>Entity</th><th>Total Paras</th><th>PAC Settled</th><th>DAC Settled</th><th>Pending Paras</th><th>Pending for PAC Compliance</th><th>Pending for PAC Compliance Nos</th></tr>`;
+       let t = {tot:0, pac:0, dac:0, pen:0, mi:0};
+       data.forEach(r => {
+         html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td><td>${r[8]}</td></tr>`;
+         t.tot += parseInt(r[3]||0); t.pac += parseInt(r[4]||0); t.dac += parseInt(r[5]||0); t.pen += parseInt(r[6]||0); t.mi  += parseInt(r[7]||0);
+       });
+       html += `<tr style="font-weight:bold;background:#eee;"><td colspan="3" align="right">Total</td><td>${t.tot}</td><td>${t.pac}</td><td>${t.dac}</td><td>${t.pen}</td><td>${t.mi}</td><td></td></tr>`;
+       document.getElementById("summary").innerHTML = html;
+    }
 
-      // --- NEW: Compliance Report Function ---
+    // --- NEW: COMPLIANCE REPORT FUNCTION ---
     async function loadComplianceReport() {
       const yrs = getSelectedValues('year-checkbox');
       const mins = getSelectedValues('ministry-checkbox');
-      
-      if(!yrs || !mins) { 
-        alert("Please select Year and Ministry"); 
-        return; 
-      }
+      if(!yrs || !mins) { alert("Please select Year and Ministry"); return; }
 
-      // API Call
       const data = await fetchData("generateComplianceReport", {years:yrs, ministries:mins});
-      
       currentView = "compliance";
-      document.getElementById("printHeading").innerText = "Compliance Report (PAC Directives)";
+      document.getElementById("printHeading").innerText = "Compliance of PAC Directives)";
       
-      // Table Headers based on your requirements
-      let html = `
-        <tr>
+      let html = `<tr>
             <th>Audit Year</th>
             <th>Ministry</th>
             <th>Department</th>
-            <th>Total Paras (Discussed)</th>
+            <th>Total Paras</th>
             <th>Full Compliance</th>
             <th>Partial Compliance</th>
             <th>Pending for Compliance</th>
@@ -439,11 +334,7 @@
       }
 
       data.forEach(r => {
-        // r structure: 
-        // 0=Year, 1=Ministry, 2=Entity, 3=Total, 4=Full, 5=Partial, 6=Pending, 7=PendingNos, 8=Percentage
-        
-        html += `
-            <tr>
+        html += `<tr>
                 <td>${r[0]}</td>
                 <td>${r[1]}</td>
                 <td>${r[2]}</td>
@@ -454,20 +345,14 @@
                 <td style="font-size:12px;">${r[7]}</td>
                 <td><b>${r[8]}%</b></td>
             </tr>`;
-            
-        // Totals Count
         t.tot += parseInt(r[3]||0);
         t.full += parseInt(r[4]||0);
         t.part += parseInt(r[5]||0);
         t.pend += parseInt(r[6]||0);
       });
 
-      // Calculate Total Percentage
       let totalPerc = t.tot > 0 ? ((t.full / t.tot) * 100).toFixed(2) : "0.00";
-
-      // Total Row
-      html += `
-        <tr style="font-weight:bold;background:#eee;">
+      html += `<tr style="font-weight:bold;background:#eee;">
             <td colspan="3" align="right">Total</td>
             <td>${t.tot}</td>
             <td>${t.full}</td>
@@ -476,70 +361,7 @@
             <td></td>
             <td>${totalPerc}%</td>
         </tr>`;
-
       document.getElementById("summary").innerHTML = html;
-    }
-       const data = await fetchData("generatePACMIWorkload", {years:yrs, ministries:mins});
-       
-       currentView = "pac_mi";
-       document.getElementById("printHeading").innerText = "Workload (Monitoring & Implementation)";
-       
-       // Headers definition
-       let html = `
-        <tr>
-            <th>Year</th>
-            <th>Ministry</th>
-            <th>Entity</th>
-            <th>Total Paras</th>
-            <th>PAC Settled</th>
-            <th>DAC Settled</th>
-            <th>Pending Paras</th>
-            <th>Pending for PAC Compliance</th>
-            <th>Pending for PAC Compliance Nos</th>
-        </tr>`;
-
-       let t = {tot:0, pac:0, dac:0, pen:0, mi:0};
-
-       data.forEach(r => {
-         // Data Mapping:
-         // r[0]=Year, r[1]=Ministry, r[2]=Entity, 
-         // r[3]=Total, r[4]=PAC, r[5]=DAC, r[6]=Pending General
-         // r[7]=M&I Count, r[8]=M&I Nos
-
-         html += `
-            <tr>
-                <td>${r[0]}</td>
-                <td>${r[1]}</td>
-                <td>${r[2]}</td>
-                <td>${r[3]}</td>
-                <td>${r[4]}</td>
-                <td>${r[5]}</td>
-                <td>${r[6]}</td>
-                <td>${r[7]}</td>
-                <td>${r[8]}</td>
-            </tr>`;
-         
-         // Totals calculation
-         t.tot += parseInt(r[3]||0);
-         t.pac += parseInt(r[4]||0);
-         t.dac += parseInt(r[5]||0);
-         t.pen += parseInt(r[6]||0);
-         t.mi  += parseInt(r[7]||0);
-       });
-
-       // Total Row
-       html += `
-        <tr style="font-weight:bold;background:#eee;">
-            <td colspan="3" align="right">Total</td>
-            <td>${t.tot}</td>
-            <td>${t.pac}</td>
-            <td>${t.dac}</td>
-            <td>${t.pen}</td>
-            <td>${t.mi}</td>
-            <td></td>
-        </tr>`;
-
-       document.getElementById("summary").innerHTML = html;
     }
 
     // --- DOWNLOADS ---
