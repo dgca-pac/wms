@@ -304,7 +304,7 @@
        document.getElementById("summary").innerHTML = html;
     }
 
-    // --- NEW: COMPLIANCE REPORT FUNCTION ---
+    // --- UPDATED: Compliance Report (New Logic) ---
     async function loadComplianceReport() {
       const yrs = getSelectedValues('year-checkbox');
       const mins = getSelectedValues('ministry-checkbox');
@@ -312,28 +312,31 @@
 
       const data = await fetchData("generateComplianceReport", {years:yrs, ministries:mins});
       currentView = "compliance";
-      document.getElementById("printHeading").innerText = "Compliance of PAC Directives)";
+      document.getElementById("printHeading").innerText = "Compliance Report (PAC Directives)";
       
+      // Updated Headers (Removed 'Pending for Compliance')
       let html = `<tr>
             <th>Audit Year</th>
             <th>Ministry</th>
             <th>Department</th>
-            <th>Total Paras</th>
-            <th>Full Compliance</th>
-            <th>Partial Compliance</th>
-            <th>Pending for Compliance</th>
+            <th>Total Paras (PAC Directed)</th>
+            <th>Full Compliance (DAC Settled)</th>
+            <th>Partial Compliance (Pending)</th>
             <th>Pending Paras No.</th>
             <th>% of Compliance</th>
         </tr>`;
 
-      let t = {tot:0, full:0, part:0, pend:0};
+      let t = {tot:0, full:0, part:0};
 
       if(data.length === 0) {
-         document.getElementById("summary").innerHTML = "<tr><td colspan='9'>No Discussed Paras Found</td></tr>";
+         document.getElementById("summary").innerHTML = "<tr><td colspan='8'>No Relevant Paras Found</td></tr>";
          return;
       }
 
       data.forEach(r => {
+        // r indices: 
+        // 0=Year, 1=Ministry, 2=Entity, 3=Total, 4=Full(DAC Settled), 5=Partial(Pending), 6=Nos, 7=%
+        
         html += `<tr>
                 <td>${r[0]}</td>
                 <td>${r[1]}</td>
@@ -341,29 +344,27 @@
                 <td>${r[3]}</td>
                 <td>${r[4]}</td>
                 <td>${r[5]}</td>
-                <td>${r[6]}</td>
-                <td style="font-size:12px;">${r[7]}</td>
-                <td><b>${r[8]}%</b></td>
+                <td style="font-size:12px;">${r[6]}</td>
+                <td><b>${r[7]}%</b></td>
             </tr>`;
+        
         t.tot += parseInt(r[3]||0);
         t.full += parseInt(r[4]||0);
         t.part += parseInt(r[5]||0);
-        t.pend += parseInt(r[6]||0);
       });
 
       let totalPerc = t.tot > 0 ? ((t.full / t.tot) * 100).toFixed(2) : "0.00";
+      
       html += `<tr style="font-weight:bold;background:#eee;">
             <td colspan="3" align="right">Total</td>
             <td>${t.tot}</td>
             <td>${t.full}</td>
             <td>${t.part}</td>
-            <td>${t.pend}</td>
             <td></td>
             <td>${totalPerc}%</td>
         </tr>`;
       document.getElementById("summary").innerHTML = html;
     }
-
     // --- DOWNLOADS ---
     function printTable() { window.print(); }
     function downloadExcel() {
