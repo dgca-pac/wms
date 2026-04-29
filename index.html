@@ -130,7 +130,7 @@
 
   <script>
     // --- IMPORTANT: REPLACE THIS URL AFTER DEPLOYMENT ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbzcqN9gzWFmK5AgSMa-X7JZ3QtWqw1oCOdN07dljM-EaixM3BDcvdqDPK6xj1w-moZ8/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbyn8cH3ZsWA0aKoVsMTzv-LT_oXfCVq66tHzvyX65V38knoMAaJj6Mdam0Tl2wAjiPe/exec"; 
     // ----------------------------------------------------
 
     let allYears = [];
@@ -271,21 +271,50 @@
       document.getElementById("summary").innerHTML = html;
     }
 
-    async function loadPACProgress() {
-      const yrs = getSelectedValues('year-checkbox'), mins = getSelectedValues('ministry-checkbox');
-      if(!yrs || !mins) return alert("Select Year & Ministry");
-      const data = await fetchData("generatePACProgress", {years:yrs, ministries:mins});
-      currentView = "pac_status";
-      document.getElementById("printHeading").innerText = "PAC Status Report";
-      let html = `<tr><th>Year</th><th>Ministry</th><th>Entity</th><th>Total Paras</th><th>Discussed</th><th>PAC Settled</th><th>DAC Rec.</th><th>Court/FIA</th><th>Pending Disc.</th></tr>`;
-      let t = Array(6).fill(0);
-      data.forEach(r => {
-        html += `<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`;
-        for(let i=3; i<9; i++) t[i-3] += parseInt(r[i]||0);
-      });
-      html += `<tr style="font-weight:bold;background:#eee;"><td colspan="3" align="right">Total</td><td>${t[0]}</td><td>${t[1]}</td><td>${t[2]}</td><td>${t[3]}</td><td>${t[4]}</td><td>${t[5]}</td></tr>`;
-      document.getElementById("summary").innerHTML = html;
-    }
+   async function loadPACProgress() {
+  const yrs = getSelectedValues('year-checkbox'), mins = getSelectedValues('ministry-checkbox');
+  if(!yrs || !mins) return alert("Select Year & Ministry");
+  
+  const data = await fetchData("generatePACProgress", {years:yrs, ministries:mins});
+  currentView = "pac_status";
+  document.getElementById("printHeading").innerText = "PAC Status Report";
+  
+  // 1. Yahan naya column header "Pending Para Nos." add kiya hy
+  let html = `<tr>
+                <th>Year</th>
+                <th>Ministry</th>
+                <th>Entity</th>
+                <th>Total Paras</th>
+                <th>Discussed</th>
+                <th>PAC Settled</th>
+                <th>DAC Rec.</th>
+                <th>Court/FIA</th>
+                <th>Pending Disc.</th>
+                <th>Pending Para Nos.</th> 
+              </tr>`;
+  
+  let t = Array(6).fill(0);
+  
+  data.forEach(r => {
+    // r.map khud hi backend se naya column (Index 9) utha ley ga
+    html += `<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+    for(let i=3; i<9; i++) t[i-3] += parseInt(r[i]||0);
+  });
+
+  // 2. Footer mein aakhir mein aik extra <td></td> dala hy taake formatting kharab na ho
+  html += `<tr style="font-weight:bold;background:#eee;">
+            <td colspan="3" align="right">Total</td>
+            <td>${t[0]}</td>
+            <td>${t[1]}</td>
+            <td>${t[2]}</td>
+            <td>${t[3]}</td>
+            <td>${t[4]}</td>
+            <td>${t[5]}</td>
+            <td></td> 
+          </tr>`;
+  
+  document.getElementById("summary").innerHTML = html;
+}
 
     async function loadPACMIWorkload() {
        const yrs = getSelectedValues('year-checkbox');
